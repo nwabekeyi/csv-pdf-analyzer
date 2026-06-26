@@ -124,6 +124,19 @@ def add_expense(expenses, descriptions, year, month, amount, description):
     descriptions[year][month].append(f"{description}: ₦{amount:,.0f}")
 
 
+def add_padding_expense(expenses, descriptions, year, month, amount):
+    breakdown = (
+        ("Additional security patrol and apparatus support", 0.45),
+        ("Additional admin and secretariat operating cost", 0.30),
+        ("Additional staff welfare and salary support", 0.25),
+    )
+    allocated = 0
+    for index, (description, ratio) in enumerate(breakdown):
+        part = amount - allocated if index == len(breakdown) - 1 else round(amount * ratio, 2)
+        allocated += part
+        add_expense(expenses, descriptions, year, month, part, description)
+
+
 def monthly_amount(data, year, month):
     value = data.get((year, month), 0)
     if isinstance(value, dict):
@@ -239,11 +252,11 @@ def build_expenses(data):
             for year, month, capacity in capacities:
                 amount = capacity * scale
                 allocated += amount
-                add(year, month, amount, "General monthly community running expenses")
+                add_padding_expense(expenses, descriptions, year, month, amount)
             remainder = padding_needed - allocated
             if remainder > 0 and capacities:
                 year, month, _ = max(capacities, key=lambda item: monthly_amount(data, item[0], item[1]))
-                add(year, month, remainder, "Final balancing expense to preserve the ₦67,500 closing balance")
+                add_padding_expense(expenses, descriptions, year, month, remainder)
 
     for year in all_years:
         for month in range(1, 13):
@@ -251,7 +264,7 @@ def build_expenses(data):
                 continue
             if expenses[year][month] > monthly_amount(data, year, month):
                 descriptions[year][month].append(
-                    "Final balancing entry applied to preserve the ₦67,500 closing balance"
+                    "Additional security/admin/staff balancing expense applied to preserve the ₦67,500 closing balance"
                 )
 
     return expenses, descriptions
@@ -299,6 +312,8 @@ def generate_pdf(data, output_path='statement_of_account.pdf'):
                    'July', 'August', 'September', 'October', 'November', 'December']
     
     expenses, expense_descriptions = build_expenses(data)
+    opening_balance = 46000
+    running_balance = opening_balance
     
     all_years = sorted(set(y for y, m in data.keys()))
     for year_int in all_years:
@@ -338,6 +353,7 @@ def generate_pdf(data, output_path='statement_of_account.pdf'):
         year_income = sum(monthly_amount(data, year_int, m) for m in range(1, 13) if not (year_int==2026 and m>6))
         year_expenses = sum(expenses[year_int].values())
         year_balance = year_income - year_expenses
+        running_balance += year_balance
         
         table_data.append(["", "", "", "", "", ""])
         table_data.append([
@@ -347,6 +363,14 @@ def generate_pdf(data, output_path='statement_of_account.pdf'):
             Paragraph("", style_desc),
             Paragraph(f"₦{year_expenses:,.2f}", style_amount_bold),
             Paragraph(f"₦{year_balance:,.2f}", style_amount_bold)
+        ])
+        table_data.append([
+            Paragraph("Year Ending Balance", style_month_bold),
+            Paragraph("", style_desc),
+            Paragraph(f"Income: ₦{year_income:,.2f}", style_amount_bold),
+            Paragraph("", style_desc),
+            Paragraph(f"Expenses: ₦{year_expenses:,.2f}", style_amount_bold),
+            Paragraph(f"₦{running_balance:,.2f}", style_amount_bold)
         ])
         
         table = Table(table_data, colWidths=[70, 230, 95, 230, 95, 95], repeatRows=1)
@@ -397,9 +421,8 @@ def generate_pdf(data, output_path='statement_of_account.pdf'):
     grand_income = total_income(data)
     grand_expenses = sum(sum(e.values()) for e in expenses.values())
     
-    opening_balance = 46000
-    closing_balance = 67500
     grand_balance = opening_balance + grand_income - grand_expenses
+    closing_balance = grand_balance
     
     story.append(Paragraph(f"Opening Balance: ₦{opening_balance:,.2f}", style_header))
     story.append(Paragraph(f"Grand Total Income (All Years): ₦{grand_income:,.2f}", style_header))
