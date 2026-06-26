@@ -36,8 +36,6 @@ output/
 # PDF files (optional)
 pdfs/
 
-# CSV files (optional)
-*.csv
 
 # Excel files (optional)
 *.xlsx
