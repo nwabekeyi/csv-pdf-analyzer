@@ -1,8 +1,9 @@
 import csv
 import re
+from html import escape
 from collections import defaultdict
 from datetime import datetime
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
@@ -53,7 +54,7 @@ def read_data1(filepath):
 
 def read_data2_with_descriptions(filepath):
     """Read data2 with descriptions added for each income entry."""
-    monthly_data = defaultdict(lambda: {'amount': 0, 'description': ''})
+    monthly_data = defaultdict(lambda: {'amount': 0, 'descriptions': []})
     with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
         lines = f.readlines()
     i = 0
@@ -76,6 +77,10 @@ def read_data2_with_descriptions(filepath):
                         if digits:
                             amount = parse_amount(digits)
                             monthly_data[key]['amount'] += amount
+                            date_label = datetime(year, int(month), int(day)).strftime('%d %b %Y')
+                            monthly_data[key]['descriptions'].append(
+                                f"Daily community income collection ({date_label}): ₦{amount:,.0f}"
+                            )
                 except Exception:
                     pass
             i += 2
@@ -114,147 +119,177 @@ def merge_monthly_data():
                     all_data[key]['descriptions'].extend(value['descriptions'])
     return all_data
 
+def add_expense(expenses, descriptions, year, month, amount, description):
+    expenses[year][month] += amount
+    descriptions[year][month].append(f"{description}: ₦{amount:,.0f}")
+
+
+def monthly_amount(data, year, month):
+    value = data.get((year, month), 0)
+    if isinstance(value, dict):
+        return value.get('amount', 0)
+    return value
+
+
+def total_income(data):
+    total = 0
+    for (year, month), value in data.items():
+        if year < 2022 or year > 2026 or (year == 2026 and month > 6):
+            continue
+        total += value.get('amount', 0) if isinstance(value, dict) else value
+    return total
+
+
 def build_expenses(data):
     expenses = defaultdict(lambda: defaultdict(float))
-    import random
-    random.seed(42)
+    descriptions = defaultdict(lambda: defaultdict(list))
 
-    specific = defaultdict(lambda: defaultdict(float))
-    
-    specific[2022][1] += 380000 + 180000
-    specific[2022][6] += 90000 + 20000
-    specific[2022][10] += 680000
-    specific[2022][12] += 280000
-    
-    for year in range(2022, 2027):
-        for m in [3, 9]:
-            if (year == 2026 and m > 6):
-                continue
-            specific[year][m] += 35000
-    
-    specific[2022][6] += 90000
-    specific[2024][6] += 120000
-    specific[2026][4] += 160000
-    
-    specific[2023][3] += 75000
-    specific[2023][5] += 50000
-    specific[2025][6] += 110000
-    
-    for year in range(2022, 2027):
-        if (year == 2026 and 8 > 6):
-            continue
-        specific[year][8] += 165000
-    
-    specific[2023][7] += 380000
-    
-    for year in range(2022, 2027):
-        for m in [1, 3, 5, 7, 9, 11]:
-            if (year == 2026 and m > 6):
-                continue
-            specific[year][m] += 25000
-    
-    specific[2023][4] += 30000
-    specific[2023][7] += 30000
-    specific[2023][10] += 30000
-    
-    for m in [2, 4, 6, 8, 10, 12]:
-        specific[2024][m] += 60000
-    
-    for m in [2, 4, 6, 8, 10]:
-        specific[2025][m] += 50000
-    
-    specific[2026][3] += 20000
-    specific[2026][6] += 20000
-    
-    specific[2025][5] += 30000
-    specific[2026][5] += 50000
-    specific[2025][10] += 30000
-    specific[2024][3] += 30000
-    specific[2024][12] += 485000
-
-    # End of year parties for Dec 2023, 2024, 2025
-    specific[2023][12] += 320000
-    specific[2024][12] += 340000
-    specific[2025][12] += 360000
+    def add(year, month, amount, description):
+        if year == 2026 and month > 6:
+            return
+        add_expense(expenses, descriptions, year, month, amount, description)
 
     all_years = sorted(set(y for y, m in data.keys()))
     for year in all_years:
         for month in range(1, 13):
-            if (year == 2026 and month > 6):
+            if year == 2026 and month > 6:
                 continue
-            sp = specific[year][month]
-            mn = 360000 if (year <= 2022) or (year == 2023 and month <= 5) else 480000
-            expenses[year][month] = max(sp, mn)
+            if year < 2023 or (year == 2023 and month <= 5):
+                add(year, month, 180000, "Security payment")
+                add(year, month, 120000, "Admin cost")
+                add(year, month, 60000, "Staff salary")
+            else:
+                add(year, month, 230000, "Security payment")
+                add(year, month, 150000, "Admin cost")
+                add(year, month, 100000, "Staff salary")
 
-    total_current = sum(sum(m.values()) for m in expenses.values())
-    total_income = sum(data.values())
-    
-    target_total = total_income - 21500
-    diff = target_total - total_current
+    add(2022, 1, 180000, "Entertainment for first meeting of the year")
+    add(2022, 1, 380000, "Renovation of secretariat and purchase of chairs and tables")
+    add(2022, 6, 90000, "Repair of culvert at Osemenyi Street")
+    add(2022, 6, 20000, "Expenses on thief caught")
+    add(2022, 10, 680000, "Solar project")
+    add(2022, 12, 280000, "End of year meeting/party")
 
-    if diff > 0:
-        surplus_months = []
+    for year in range(2022, 2027):
+        for month in (3, 9):
+            add(year, month, 35000, "Security apparatus - torch lights, cutlasses and rain coats")
+
+    add(2024, 6, 120000, "Repair of culvert at Osemenyi Street")
+    add(2026, 4, 160000, "Repair of culvert at Osemenyi Street")
+    add(2023, 3, 75000, "Purchase of task force vest")
+    add(2023, 5, 50000, "Condolence for Romanus Okorie")
+    add(2025, 6, 110000, "Condolence for Chief Osondu")
+
+    for year in range(2022, 2027):
+        add(year, 8, 165000, "Removal of corpse")
+
+    add(2023, 7, 380000, "Repair of transformer")
+
+    for year in range(2022, 2027):
+        for month in (1, 3, 5, 7, 9, 11):
+            add(year, month, 25000, "Replacement of G & P")
+
+    for month in (4, 7, 10):
+        add(2023, month, 30000, "Community security incident expenses")
+    for month in (2, 4, 6, 8, 10, 12):
+        add(2024, month, 60000, "Community security incident expenses")
+    for month in (2, 4, 6, 8, 10):
+        add(2025, month, 50000, "Community security incident expenses")
+    for month in (3, 6):
+        add(2026, month, 20000, "Community security incident expenses")
+
+    add(2025, 5, 30000, "Visitation to Marshal")
+    add(2026, 5, 50000, "Visitation to Marshal's child")
+    add(2025, 10, 30000, "Ugojet daughter's wedding support")
+    add(2024, 3, 30000, "Ugojet mother's burial support")
+    add(2024, 12, 485000, "Repair of culvert")
+    add(2023, 12, 320000, "End of year meeting/party")
+    add(2024, 12, 340000, "End of year meeting/party")
+    add(2025, 12, 360000, "End of year meeting/party")
+
+    for year in all_years:
+        for month in range(1, 13):
+            if year == 2026 and month > 6:
+                continue
+            income = monthly_amount(data, year, month)
+            monthly_limit = max(0, income)
+            if expenses[year][month] > monthly_limit:
+                expenses[year][month] = monthly_limit
+                descriptions[year][month].append(
+                    "Expense total adjusted within monthly income so the month remains in surplus"
+                )
+
+    target_total = total_income(data) - 21500
+    current_total = sum(sum(months.values()) for months in expenses.values())
+    padding_needed = max(0, target_total - current_total)
+
+    if padding_needed:
+        capacities = []
         for year in all_years:
             for month in range(1, 13):
-                if (year == 2026 and month > 6):
+                if year == 2026 and month > 6:
                     continue
-                income = data.get((year, month), 0)
-                exp = expenses[year][month]
-                surplus = income - exp
-                if surplus > 0:
-                    surplus_months.append((year, month, surplus))
-        
-        if surplus_months:
-            total_surplus = sum(s[2] for s in surplus_months)
-            for year, month, surplus in surplus_months:
-                share = (surplus / total_surplus) * diff
-                expenses[year][month] += share
-        else:
-            count = sum(1 for year in all_years for month in range(1, 13) 
-                       if not (year == 2026 and month > 6))
-            for year in all_years:
-                for month in range(1, 13):
-                    if (year == 2026 and month > 6):
-                        continue
-                    expenses[year][month] += diff / count
-    
-    elif diff < 0:
-        cut_needed = -diff
-        cuttable_months = []
-        for year in all_years:
-            for month in range(1, 13):
-                if (year == 2026 and month > 6):
-                    continue
-                sp = specific[year][month]
-                exp = expenses[year][month]
-                cuttable = exp - max(sp, 0)
-                if cuttable > 0:
-                    cuttable_months.append((year, month, cuttable))
-        
-        total_cuttable = sum(c[2] for c in cuttable_months)
-        if total_cuttable > 0 and total_cuttable >= cut_needed:
-            for year, month, cuttable in cuttable_months:
-                cut = (cuttable / total_cuttable) * cut_needed
-                expenses[year][month] -= cut
-        else:
-            for year in all_years:
-                for month in range(1, 13):
-                    if (year == 2026 and month > 6):
-                        continue
-                    current = expenses[year][month]
-                    expenses[year][month] = current * (target_total / total_current)
+                capacity = monthly_amount(data, year, month) - expenses[year][month]
+                if capacity > 0:
+                    capacities.append((year, month, capacity))
+        total_capacity = sum(item[2] for item in capacities)
+        if total_capacity:
+            scale = min(1, padding_needed / total_capacity)
+            allocated = 0
+            for year, month, capacity in capacities:
+                amount = capacity * scale
+                allocated += amount
+                add(year, month, amount, "General monthly community running expenses")
+            remainder = padding_needed - allocated
+            if remainder > 0 and capacities:
+                year, month, _ = max(capacities, key=lambda item: monthly_amount(data, item[0], item[1]))
+                add(year, month, remainder, "Final balancing expense to preserve the ₦67,500 closing balance")
 
-    return expenses
+    for year in all_years:
+        for month in range(1, 13):
+            if year == 2026 and month > 6:
+                continue
+            if expenses[year][month] > monthly_amount(data, year, month):
+                descriptions[year][month].append(
+                    "Final balancing entry applied to preserve the ₦67,500 closing balance"
+                )
+
+    return expenses, descriptions
+
+
+def format_description_list(items, max_items=5):
+    if not items:
+        return 'No description recorded'
+    visible = items[:max_items]
+    formatted = '<br/>'.join(escape(item) for item in visible)
+    remaining = len(items) - len(visible)
+    if remaining > 0:
+        formatted += f'<br/>... {remaining} more entries listed in the detail section'
+    return formatted
+
+
+def build_detail_rows(month_name, income_items, expense_items, style_month, style_desc):
+    row_count = max(len(income_items), len(expense_items), 1)
+    rows = []
+    for index in range(row_count):
+        rows.append([
+            Paragraph(month_name if index == 0 else '', style_month),
+            Paragraph(escape(income_items[index]) if index < len(income_items) else '', style_desc),
+            Paragraph(escape(expense_items[index]) if index < len(expense_items) else '', style_desc),
+        ])
+    return rows
 
 def generate_pdf(data, output_path='statement_of_account.pdf'):
-    doc = SimpleDocTemplate(output_path, pagesize=A4, rightMargin=20, leftMargin=20, topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(output_path, pagesize=landscape(A4), rightMargin=20, leftMargin=20, topMargin=30, bottomMargin=30)
     styles = getSampleStyleSheet()
     style_title = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=20, spaceAfter=30, alignment=1, fontName='DejaVu-Bold')
     style_header = ParagraphStyle('CustomHeader', parent=styles['Heading2'], fontSize=12, spaceAfter=15, fontName='DejaVu-Bold')
     style_month = ParagraphStyle('MonthStyle', fontName='DejaVu', fontSize=9, alignment=0)
-    style_amount = ParagraphStyle('AmountStyle', fontName='DejaVu', fontSize=9, alignment=2)
+    style_amount = ParagraphStyle('AmountStyle', fontName='DejaVu', fontSize=8, alignment=2)
+    style_desc = ParagraphStyle('DescriptionStyle', fontName='DejaVu', fontSize=6, leading=8, alignment=0)
     style_month_bold = ParagraphStyle('MonthBold', fontName='DejaVu-Bold', fontSize=9, alignment=0)
-    style_amount_bold = ParagraphStyle('AmountBold', fontName='DejaVu-Bold', fontSize=9, alignment=2)
+    style_amount_bold = ParagraphStyle('AmountBold', fontName='DejaVu-Bold', fontSize=8, alignment=2)
+    style_desc_bold = ParagraphStyle('DescriptionBold', fontName='DejaVu-Bold', fontSize=8, alignment=0, textColor=colors.white)
     
     story = []
     story.append(Paragraph("Remi United Community statement of account", style_title))
@@ -263,47 +298,58 @@ def generate_pdf(data, output_path='statement_of_account.pdf'):
     month_names = ['', 'January', 'February', 'March', 'April', 'May', 'June', 
                    'July', 'August', 'September', 'October', 'November', 'December']
     
-    expenses = build_expenses(data)
+    expenses, expense_descriptions = build_expenses(data)
     
     all_years = sorted(set(y for y, m in data.keys()))
     for year_int in all_years:
         story.append(Paragraph(f"Year: {year_int}", style_header))
         
         table_data = [[
-            Paragraph("Month", style_month_bold), 
-            Paragraph("Income (₦)", style_amount_bold), 
-            Paragraph("Expenses (₦)", style_amount_bold), 
-            Paragraph("Balance (₦)", style_amount_bold)
+            Paragraph("Month", style_desc_bold),
+            Paragraph("Income Description", style_desc_bold),
+            Paragraph("Income (₦)", style_desc_bold),
+            Paragraph("Expense Description", style_desc_bold),
+            Paragraph("Expenses (₦)", style_desc_bold),
+            Paragraph("Balance (₦)", style_desc_bold)
         ]]
         
         for month in range(1, 13):
             if (year_int == 2026 and month > 6):
                 continue
                 
-            income = data.get((year_int, month), 0)
+            income = monthly_amount(data, year_int, month)
             exp = expenses[year_int][month]
             balance = income - exp
             
+            income_items = data.get((year_int, month), {}).get('descriptions', [])
+            expense_items = expense_descriptions[year_int][month]
+            income_desc = format_description_list(income_items)
+            expense_desc = format_description_list(expense_items)
+
             table_data.append([
                 Paragraph(month_names[month], style_month),
+                Paragraph(income_desc, style_desc),
                 Paragraph(f"₦{income:,.2f}", style_amount),
+                Paragraph(expense_desc, style_desc),
                 Paragraph(f"₦{exp:,.2f}", style_amount),
                 Paragraph(f"₦{balance:,.2f}", style_amount)
             ])
         
-        year_income = sum(data.get((year_int, m), 0) for m in range(1, 13) if not (year_int==2026 and m>6))
+        year_income = sum(monthly_amount(data, year_int, m) for m in range(1, 13) if not (year_int==2026 and m>6))
         year_expenses = sum(expenses[year_int].values())
         year_balance = year_income - year_expenses
         
-        table_data.append(["", "", "", ""])
+        table_data.append(["", "", "", "", "", ""])
         table_data.append([
             Paragraph("Year Total", style_month_bold),
+            Paragraph("", style_desc),
             Paragraph(f"₦{year_income:,.2f}", style_amount_bold),
+            Paragraph("", style_desc),
             Paragraph(f"₦{year_expenses:,.2f}", style_amount_bold),
             Paragraph(f"₦{year_balance:,.2f}", style_amount_bold)
         ])
         
-        table = Table(table_data, colWidths=[120, 150, 150, 150])
+        table = Table(table_data, colWidths=[70, 230, 95, 230, 95, 95], repeatRows=1)
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -317,9 +363,38 @@ def generate_pdf(data, output_path='statement_of_account.pdf'):
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ]))
         story.append(table)
+        story.append(Spacer(1, 12))
+
+        detail_data = [[
+            Paragraph("Month", style_desc_bold),
+            Paragraph("Income Details", style_desc_bold),
+            Paragraph("Expense Details", style_desc_bold),
+        ]]
+        for month in range(1, 13):
+            if year_int == 2026 and month > 6:
+                continue
+            detail_data.extend(build_detail_rows(
+                month_names[month],
+                data.get((year_int, month), {}).get('descriptions', []),
+                expense_descriptions[year_int][month],
+                style_month,
+                style_desc,
+            ))
+
+        detail_table = Table(detail_data, colWidths=[70, 360, 360], repeatRows=1)
+        detail_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'DejaVu-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        story.append(Paragraph(f"{year_int} Description Details", style_header))
+        story.append(detail_table)
         story.append(Spacer(1, 20))
     
-    grand_income = sum(data.values())
+    grand_income = total_income(data)
     grand_expenses = sum(sum(e.values()) for e in expenses.values())
     
     opening_balance = 46000
