@@ -1,0 +1,47 @@
+# Virtual Environment
+venv/
+.env/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+
+# Logs
+*.log
+
+# Output files
+output/
+
+# PDF files (optional)
+pdfs/
+
+# CSV files (optional)
+*.csv
+
+# Excel files (optional)
+*.xlsx
+
+# SQLite database (if using one)
+*.sqlite3
+db.sqlite3
