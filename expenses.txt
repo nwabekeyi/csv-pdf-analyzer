@@ -1,0 +1,56 @@
+Basic Template for Monthly expenditure Jan. 2022 to May 2023
+1. Security payment 180k
+2. Admin cost 120k
+3. Staff salary 60k
+
+
+Basic Template for Monthly expenditure June. 2023 to June 2026
+1. Security payment 230k
+2. Admin cost 150k
+3. Staff salary 100k
+
+
+other expenses
+Remi United Community Monthly Expenses 
+
+1. Security payment from Jan 2022 to June 2023 is N180,000 Monthly 
+2. Security payment from July 2023 to June is 230k
+3. Admin expenses 120k
+4. 2 Staffs salary 100k
+5. Security apparatus like
+       ▪︎ Torch light 
+       ▪︎ Cutlass
+       ▪︎ Rain coat 
+N35k twice per year N70k
+6. Repair of culvet at Osemenyi Street in 2022, 2024 and 2026. 90k, 120k, and 160k respectively 
+7. Renovation of secretariat and purchase of chair and tables 2022 380k
+8. Purchase of task force vex N75k
+9. Condolence for Romanus okorie 50k 2023
+10. Condolence for Chief Osondu N110k in 2025
+11. Removal of corpse in August N165k
+12. Repair of transformer in 2023 cost N380k
+13. Replacement of G & P 25k bi Monthly
+14. 2022 Entertainment for first meeting of the year 180k
+15. End of year meeting for 2022 is N280k
+16. 2022 Expenses on thief caught N20k
+17. 2023 three times 30k
+18. 2024 six times 60k
+19. 2025 five times 50k
+20. 2026 two times 20k
+21. Visitation to Marshal 2025 N30,000
+22. Visitation to marshal child 2026 N50k
+23. Ugojet daughter's wedding Oct 2025 N30k
+24. Ugojet mother's burial N30k
+25. Solar projet Oct. 2022 N680k
+26. Repair of culvet in Dec 2024 N485k
+
+
+
+
+
+instruction:
+inside of the pdf, create an expenses column for each month in the year then use this information above to populate the expnses accodringly. FOllow these rules:
+
+1. For months where we do not have expenditure, generate expenditures for them.
+2. Balance must always be in excesss but margin cannot be much for each month, so you have to create a balance column. and for each month even if we have expenses for the month, add some expenses to make sure that balance is not too big.
+3. add a closing balance and report for every year and always make sure that maths is correct
