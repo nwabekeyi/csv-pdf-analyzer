@@ -256,6 +256,29 @@ def build_expenses(data):
 
     return expenses, descriptions
 
+
+def format_description_list(items, max_items=5):
+    if not items:
+        return 'No description recorded'
+    visible = items[:max_items]
+    formatted = '<br/>'.join(escape(item) for item in visible)
+    remaining = len(items) - len(visible)
+    if remaining > 0:
+        formatted += f'<br/>... {remaining} more entries listed in the detail section'
+    return formatted
+
+
+def build_detail_rows(month_name, income_items, expense_items, style_month, style_desc):
+    row_count = max(len(income_items), len(expense_items), 1)
+    rows = []
+    for index in range(row_count):
+        rows.append([
+            Paragraph(month_name if index == 0 else '', style_month),
+            Paragraph(escape(income_items[index]) if index < len(income_items) else '', style_desc),
+            Paragraph(escape(expense_items[index]) if index < len(expense_items) else '', style_desc),
+        ])
+    return rows
+
 def generate_pdf(data, output_path='statement_of_account.pdf'):
     doc = SimpleDocTemplate(output_path, pagesize=landscape(A4), rightMargin=20, leftMargin=20, topMargin=30, bottomMargin=30)
     styles = getSampleStyleSheet()
@@ -298,8 +321,10 @@ def generate_pdf(data, output_path='statement_of_account.pdf'):
             exp = expenses[year_int][month]
             balance = income - exp
             
-            income_desc = '<br/>'.join(escape(item) for item in data.get((year_int, month), {}).get('descriptions', [])) or 'No income recorded'
-            expense_desc = '<br/>'.join(escape(item) for item in expense_descriptions[year_int][month]) or 'No expenses recorded'
+            income_items = data.get((year_int, month), {}).get('descriptions', [])
+            expense_items = expense_descriptions[year_int][month]
+            income_desc = format_description_list(income_items)
+            expense_desc = format_description_list(expense_items)
 
             table_data.append([
                 Paragraph(month_names[month], style_month),
@@ -338,6 +363,35 @@ def generate_pdf(data, output_path='statement_of_account.pdf'):
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ]))
         story.append(table)
+        story.append(Spacer(1, 12))
+
+        detail_data = [[
+            Paragraph("Month", style_desc_bold),
+            Paragraph("Income Details", style_desc_bold),
+            Paragraph("Expense Details", style_desc_bold),
+        ]]
+        for month in range(1, 13):
+            if year_int == 2026 and month > 6:
+                continue
+            detail_data.extend(build_detail_rows(
+                month_names[month],
+                data.get((year_int, month), {}).get('descriptions', []),
+                expense_descriptions[year_int][month],
+                style_month,
+                style_desc,
+            ))
+
+        detail_table = Table(detail_data, colWidths=[70, 360, 360], repeatRows=1)
+        detail_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'DejaVu-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        story.append(Paragraph(f"{year_int} Description Details", style_header))
+        story.append(detail_table)
         story.append(Spacer(1, 20))
     
     grand_income = total_income(data)
