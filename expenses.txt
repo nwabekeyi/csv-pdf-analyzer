@@ -48,9 +48,13 @@ N35k twice per year N70k
 
 
 
-instruction:
-inside of the pdf, create an expenses column for each month in the year then use this information above to populate the expnses accodringly. FOllow these rules:
+repair of gate should 3 times in a year, you can do it every 4 months in a year (N70000 - N120,000)
+add miscellaneous spending between 1000 - 50,000 for every year randomly
 
-1. For months where we do not have expenditure, generate expenditures for them.
-2. Balance must always be in excesss but margin cannot be much for each month, so you have to create a balance column. and for each month even if we have expenses for the month, add some expenses to make sure that balance is not too big.
-3. add a closing balance and report for every year and always make sure that maths is correct
+We cleared gutter drainage two times in 2025 being February and November(280k, 120k respectively)
+
+This year 2026 we repaired culvet at Comet Star Gate this February and it cost alot, like 180k and also gutter and drainage was fixed at Amichi Street
+
+
+
+tranformer G & P change ( bwtween 25,00 to N45,000, 18 times yearly)
